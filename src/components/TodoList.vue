@@ -11,19 +11,23 @@
         </label>
         <div v-for="(todo, index) in todos" :key="todo.id" class="todo-item">
             <div class="todo-item-left">
+                <input type="checkbox" v-model="todo.completed">
                 <div v-if="!todo.editing"
                      @dblclick="editTodo(todo)"
                      class="todo-item-label"
+                     :class="{ completed : todo.completed}"
                 >
                     {{ todo.title }}
                 </div>
                 <input
-                        v-else class="todo-item-edit"
+                        v-else
+                        class="todo-item-edit"
                         type="text"
                         v-model="todo.title"
                         @blur="completeEdit(todo)"
                         @keyup.enter="completeEdit(todo)"
-                        v-focus=""
+                        @keyup.esc="cancelEdit(todo)"
+                        v-focus
                 >
             </div>
             <div class="remove-item" @click="deleteTodo(index)">
@@ -40,6 +44,7 @@
             return {
                 newTodo: '',
                 idForTodo: 4,
+                beforeEditCache: '',
                 todos: [
                     {
                         'id': 1,
@@ -85,13 +90,25 @@
                 this.newTodo = '';
                 this.idForTodo++;
             },
+
             deleteTodo(index) {
                 this.todos.splice(index, 1)
             },
+
             editTodo(todo) {
+                this.beforeEditCache = todo.title;
                 todo.editing = true
             },
+
             completeEdit(todo) {
+                if(todo.title.trim() === '' || todo.title.length < 4) {
+                    todo.title = this.beforeEditCache
+                }
+                todo.editing = false
+            },
+
+            cancelEdit(todo){
+                todo.title = this.beforeEditCache;
                 todo.editing = false
             },
         }
@@ -146,5 +163,10 @@
         padding: 10px;
         border: 1px solid #ccc;
         font-style: italic;
+    }
+
+    .completed {
+        text-decoration: line-through;
+        color: grey;
     }
 </style>
