@@ -10,8 +10,21 @@
             >
         </label>
         <div v-for="(todo, index) in todos" :key="todo.id" class="todo-item">
-            <div>
-                {{ todo.title }}
+            <div class="todo-item-left">
+                <div v-if="!todo.editing"
+                     @dblclick="editTodo(todo)"
+                     class="todo-item-label"
+                >
+                    {{ todo.title }}
+                </div>
+                <input
+                        v-else class="todo-item-edit"
+                        type="text"
+                        v-model="todo.title"
+                        @blur="completeEdit(todo)"
+                        @keyup.enter="completeEdit(todo)"
+                        v-focus=""
+                >
             </div>
             <div class="remove-item" @click="deleteTodo(index)">
                 &times;
@@ -32,18 +45,28 @@
                         'id': 1,
                         'title': 'Одна из задач по vue',
                         'completed': false,
+                        'editing': false,
                     },
                     {
                         'id': 2,
                         'title': 'Другая из задач по vue',
                         'completed': false,
+                        'editing': false,
                     },
                     {
                         'id': 3,
                         'title': 'Другая из задач по vue',
                         'completed': false,
+                        'editing': false,
                     },
                 ]
+            }
+        },
+        directives: {
+            focus: {
+                inserted: function(el) {
+                    el.focus()
+                }
             }
         },
         methods: {
@@ -62,10 +85,15 @@
                 this.newTodo = '';
                 this.idForTodo++;
             },
-
             deleteTodo(index) {
                 this.todos.splice(index, 1)
-            }
+            },
+            editTodo(todo) {
+                todo.editing = true
+            },
+            completeEdit(todo) {
+                todo.editing = false
+            },
         }
     }
 </script>
@@ -88,7 +116,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-left: 20px;
     }
 
     .remove-item {
@@ -98,5 +125,26 @@
         &:hover {
             color: black;
         }
+    }
+
+    .todo-item-left {
+        display: flex;
+        align-items: center;
+    }
+
+    .todo-item-label {
+        padding: 10px;
+        border: 1px solid #ffffff;
+        margin-left: 12px;
+    }
+
+    .todo-item-edit {
+        font-size: 24px;
+        color: #2c3e50;
+        margin-left: 12px;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        font-style: italic;
     }
 </style>
