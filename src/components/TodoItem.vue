@@ -21,7 +21,6 @@
             >
         </div>
         <div>
-            <button @click="pluralize">Plural</button>
             <span class="remove-item" @click="deleteTodo(todo.id)">
                 &times;
             </span>
@@ -32,7 +31,6 @@
 
 
 <script>
-    import {eventBus} from '../main'
 
     export default {
         name: 'todo-item',
@@ -42,10 +40,6 @@
                 type: Object,
                 required: true,
             },
-            checkAll: {
-                type: Boolean,
-                required: true,
-            }
         },
 
         data() {
@@ -58,26 +52,6 @@
             }
         },
 
-        created() {
-            eventBus.$on('pluralize', this.handlePluralize)
-        },
-
-        beforeDestroy() { // - beforeDestroy в Vue - устранение утечек памяти, очистка компонента от лишнего
-            eventBus.$off('pluralize', this.handlePluralize) // убедить, что мы убираем событие
-        },
-
-        watch: {
-            checkAll() {
-                // if (this.checkAll){
-                //     this.completed = true
-                // } else {
-                //     this.completed = this.todo.completed
-                // }
-                this.completed = this.checkAll ? true : this.todo.completed
-            }
-        },
-        // watch смотреть за изменением пропсов (нужно отследить и передать что все todos выаолнены)
-
         directives: {
             focus: {
                 inserted: function(el) {
@@ -88,7 +62,7 @@
 
         methods: {
             deleteTodo(id) {
-                eventBus.$emit('deletedTodo', id)
+                this.$store.dispatch('delTodo', id)
             },
 
             editTodo() {
@@ -101,37 +75,20 @@
                     this.title = this.beforeEditCache
                 }
                 this.editing = false;
-                eventBus.$emit('finishEdit', {
+
+                this.$store.dispatch('updateTodo', {
                     'id': this.id,
                     'title': this.title,
                     'completed': this.completed,
                     'editing': this.editing,
                 })
-                // this.$emit нужно уведомить родителя, что произошли изменения
-                // eventBus.$emit - eventBus позволяет нам передавать данные между любыми компонентами напрямую
             },
 
             cancelEdit(){
                 this.title = this.beforeEditCache;
                 this.editing = false
             },
-
-            pluralize() {
-               eventBus.$emit('pluralize')
-            },
-
-            handlePluralize() {
-                this.title = this.title + '1';
-                eventBus.$emit('finishEdit', {
-                    'id': this.id,
-                    'title': this.title,
-                    'completed': this.completed,
-                    'editing': this.editing,
-                })
-            },
         }
     }
-    // his.$emit - отправляем Event на удаление в родитель TodoList,
-    // editTodo(todo) -> editTodo() - todo больше не нужно так как это все локально, заменяем на this.
 </script>
 

@@ -11,20 +11,13 @@
                 v-for="todo in todosFiltered"
                 :key="todo.id"
                 :todo="todo"
-                :checkAll="!anyRemaining"
         >
         </todo-item>
-
-        <div class="extra-container">
-            <todo-check-all :anyRemaining="anyRemaining"></todo-check-all>
-            <todo-items-remaining :remaining="remaining"></todo-items-remaining>
-        </div>
-
         <div class="extra-container">
             <todo-filter></todo-filter>
             <div>
                 <transition name="fade">
-                    <todo-clear-completed :showClearCompletedButton="showClearCompletedButton"></todo-clear-completed>
+                    <todo-clear-completed></todo-clear-completed>
                 </transition>
             </div>
         </div>
@@ -32,21 +25,15 @@
 </template>
 
 <script>
-    import {eventBus} from '../main'
     import TodoItem from "./TodoItem";
-    import TodoItemsRemaining from "./TodoItemsRemaining";
-    import TodoCheckAll from "./TodoCheckAll";
     import TodoFilter from "./TodoFilter";
     import TodoClearCompleted from "./TodoClearCompleted";
-
 
     export default {
         name: 'todo-list',
 
         components: {
             TodoItem,
-            TodoItemsRemaining,
-            TodoCheckAll,
             TodoFilter,
             TodoClearCompleted,
         },
@@ -55,112 +42,28 @@
             return {
                 newTodo: '',
                 idForTodo: 4,
-                beforeEditCache: '',
-                filter: 'all', // ставим по дефолту фильтр
-                todos: [
-                    {
-                        'id': 1,
-                        'title': '1. Одна из задач по vue',
-                        'completed': false,
-                        'editing': false,
-                    },
-                    {
-                        'id': 2,
-                        'title': '2. Другая из задач по vue',
-                        'completed': false,
-                        'editing': false,
-                    },
-                    {
-                        'id': 3,
-                        'title': '3. Другая из задач по vue',
-                        'completed': false,
-                        'editing': false,
-                    },
-                ]
             }
         },
 
-        created() {
-            eventBus.$on('deletedTodo', (id) => this.deleteTodo(id));
-            eventBus.$on('finishEdit', (data) => this.finishEdit(data));
-            eventBus.$on('checkAllChanged', (checked) => this.checkAll(checked));
-            eventBus.$on('filterChanged', (filter) => this.$store.state.filter = filter);
-            eventBus.$on('clearCompletedTodos', () => this.clearCompleted());
-        },
-
-        beforeDestroy() {
-            eventBus.$off('deletedTodo');
-            eventBus.$off('finishEdit');
-            eventBus.$off('checkAllChanged');
-            eventBus.$off('filterChanged');
-            eventBus.$off('clearCompletedTodos');
-        },
-
         computed: {
-            remaining() {
-                return this.$store.state.todos.filter(todo => !todo.completed).length
-            },
-
-            anyRemaining() {
-                return this.remaining !== 0;
-            },
-
             todosFiltered(){
-                if (this.$store.state.filter === 'all') {
-                    return this.$store.state.todos
-                }
-                // else if (this.$store.state.filter === 'active') {
-                //     return this.$store.state.todos.filter (todo => !todo.completed)
-                // } else if (this.$store.state.filter === 'completed') {
-                //     return this.$store.state.todos.filter (todo => todo.completed)
-                // }
-                else if (this.$store.state.filter === 'reverse') {
-                    return this.$store.state.todos.slice().reverse() // создается новый массив на основе первого и делается сортировка
-                }
-                return this.$store.state.todos
-            },
-
-            showClearCompletedButton(){
-                return this.$store.state.todos.filter(todo => todo.completed).length > 0
-            },
-
+                return this.$store.getters.todosFiltered
+            }
         },
 
         methods: {
             addTodo() {
-
                 if(this.newTodo.trim().length === 0 || this.newTodo.length < 4) {
                     alert('Не достаточно символов');
                     return;
                 }
-
-                this.$store.state.todos.push({
+                this.$store.dispatch('addTodo', {
                     id: this.idForTodo,
                     title: this.newTodo,
-                    completed: false,
                 });
                 this.newTodo = '';
                 this.idForTodo++;
             },
-
-            deleteTodo(id) {
-                const index = this.$store.state.todos.findIndex((item) => item.id === id);
-                this.$store.state.todos.splice(index, 1)
-            },
-
-            checkAll() {
-                this.$store.state.todos.forEach((todo) => todo.completed = event.target.checked)
-            },
-
-            clearCompleted() {
-                this.$store.state.todos = this.$store.state.todos.filter(todo => !todo.completed)
-            },
-
-            finishEdit(data) {
-                const index = this.$store.state.todos.findIndex((item) => item.id === data.id);
-                this.$store.state.todos.splice(index, 1, data)
-            },
-            //(data.index, 1, data.todo) заменяем один item, и данные по todo (синхр данные между родителем и чайлдом)
         }
     }
 </script>

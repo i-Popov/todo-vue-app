@@ -2,26 +2,20 @@
     <div>
         <button :class="{ active: filter === 'all' }" @click="changeFilter('all')">вверх</button>
         <button :class="{ active: filter === 'reverse' }" @click="changeFilter('reverse')">вниз</button>
-<!--        <button :class="{ active: filter === 'all' }" @click="changeFilter('all')">All</button>-->
-<!--        <button :class="{ active: filter === 'active' }" @click="changeFilter('active')">Active</button>-->
-<!--        <button :class="{ active: filter === 'completed' }" @click="changeFilter('completed')">Completed</button>-->
     </div>
 </template>
 
 <script>
-    import {eventBus} from "../main";
-
     export default {
         name: 'todo-filter',
-        data() {
-            return {
-                'filter': 'all',
+        computed: {
+            filter() {
+                return this.$store.state.filter
             }
         },
         methods: {
             changeFilter(filter) {
-                this.filter = filter;
-                eventBus.$emit('filterChanged', filter)
+                this.$store.dispatch('updateFilter', filter)
             }
         }
     }
