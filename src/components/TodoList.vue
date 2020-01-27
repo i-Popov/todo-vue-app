@@ -7,48 +7,24 @@
                 v-model="newTodo"
                 @keyup.enter="addTodo"
         >
-        <div class="extra-container">
-            <div>
-                <button :class="{ active: filter === 'all' }" @click="filter = 'all'">вверх</button>
-                <button :class="{ active: filter === 'reverse' }" @click="filter = 'reverse'">вниз</button>
-            </div>
-        </div>
         <todo-item
-                v-for="(todo, index) in todosFiltered"
+                v-for="todo in todosFiltered"
                 :key="todo.id"
                 :todo="todo"
-                :index="index"
-                @deletedTodo="deleteTodo"
-                @finishEdit="finishEdit"
                 :checkAll="!anyRemaining"
         >
         </todo-item>
 
         <div class="extra-container">
-            <div>
-                <label>
-                    <input
-                            type="checkbox"
-                            :checked="!anyRemaining"
-                            @change="checkAll"
-                    >
-                    Выполнены все
-                </label>
-            </div>
-            <div>
-                {{ remaining }} задач осталось
-            </div>
+            <todo-check-all :anyRemaining="anyRemaining"></todo-check-all>
+            <todo-items-remaining :remaining="remaining"></todo-items-remaining>
         </div>
 
         <div class="extra-container">
-            <div>
-                <button :class="{ active: filter === 'all' }" @click="filter = 'all'">Все</button>
-                <button :class="{ active: filter === 'active' }" @click="filter = 'active'">Активные</button>
-                <button :class="{ active: filter === 'completed' }" @click="filter = 'completed'">Выполненные</button>
-            </div>
+            <todo-filter></todo-filter>
             <div>
                 <transition name="fade">
-                <button v-if="showClearCompletedButton" @click="clearCompleted">Удалить выполненные</button>
+                    <todo-clear-completed :showClearCompletedButton="showClearCompletedButton"></todo-clear-completed>
                 </transition>
             </div>
         </div>
@@ -56,13 +32,23 @@
 </template>
 
 <script>
+    import {eventBus} from '../main'
     import TodoItem from "./TodoItem";
+    import TodoItemsRemaining from "./TodoItemsRemaining";
+    import TodoCheckAll from "./TodoCheckAll";
+    import TodoFilter from "./TodoFilter";
+    import TodoClearCompleted from "./TodoClearCompleted";
+
 
     export default {
         name: 'todo-list',
 
         components: {
             TodoItem,
+            TodoItemsRemaining,
+            TodoCheckAll,
+            TodoFilter,
+            TodoClearCompleted,
         },
 
         data () {
@@ -71,9 +57,6 @@
                 idForTodo: 4,
                 beforeEditCache: '',
                 filter: 'all', // ставим по дефолту фильтр
-                //currentPage: 0,
-                //pageSize: 10,
-                //visibleTodos: [],
                 todos: [
                     {
                         'id': 1,
@@ -97,9 +80,25 @@
             }
         },
 
+        created() {
+            eventBus.$on('deletedTodo', (id) => this.deleteTodo(id));
+            eventBus.$on('finishEdit', (data) => this.finishEdit(data));
+            eventBus.$on('checkAllChanged', (checked) => this.checkAll(checked));
+            eventBus.$on('filterChanged', (filter) => this.$store.state.filter = filter);
+            eventBus.$on('clearCompletedTodos', () => this.clearCompleted());
+        },
+
+        beforeDestroy() {
+            eventBus.$off('deletedTodo');
+            eventBus.$off('finishEdit');
+            eventBus.$off('checkAllChanged');
+            eventBus.$off('filterChanged');
+            eventBus.$off('clearCompletedTodos');
+        },
+
         computed: {
             remaining() {
-                return this.todos.filter(todo => !todo.completed).length
+                return this.$store.state.todos.filter(todo => !todo.completed).length
             },
 
             anyRemaining() {
@@ -107,20 +106,22 @@
             },
 
             todosFiltered(){
-                if (this.filter === 'all') {
-                    return this.todos
-                } else if (this.filter === 'active') {
-                    return this.todos.filter (todo => !todo.completed)
-                } else if (this.filter === 'completed') {
-                    return this.todos.filter (todo => todo.completed)
-                } else if (this.filter === 'reverse') {
-                    return this.todos.slice().reverse() // создается новый массив на основе первого и делается сортировка
+                if (this.$store.state.filter === 'all') {
+                    return this.$store.state.todos
                 }
-                return this.todos
+                // else if (this.$store.state.filter === 'active') {
+                //     return this.$store.state.todos.filter (todo => !todo.completed)
+                // } else if (this.$store.state.filter === 'completed') {
+                //     return this.$store.state.todos.filter (todo => todo.completed)
+                // }
+                else if (this.$store.state.filter === 'reverse') {
+                    return this.$store.state.todos.slice().reverse() // создается новый массив на основе первого и делается сортировка
+                }
+                return this.$store.state.todos
             },
 
             showClearCompletedButton(){
-                return this.todos.filter(todo => todo.completed).length > 0
+                return this.$store.state.todos.filter(todo => todo.completed).length > 0
             },
 
         },
@@ -133,7 +134,7 @@
                     return;
                 }
 
-                this.todos.push({
+                this.$store.state.todos.push({
                     id: this.idForTodo,
                     title: this.newTodo,
                     completed: false,
@@ -142,20 +143,22 @@
                 this.idForTodo++;
             },
 
-            deleteTodo(index) {
-                this.todos.splice(index, 1)
+            deleteTodo(id) {
+                const index = this.$store.state.todos.findIndex((item) => item.id === id);
+                this.$store.state.todos.splice(index, 1)
             },
 
             checkAll() {
-                this.todos.forEach((todo) => todo.completed = event.target.checked)
+                this.$store.state.todos.forEach((todo) => todo.completed = event.target.checked)
             },
 
             clearCompleted() {
-                this.todos = this.todos.filter(todo => !todo.completed)
+                this.$store.state.todos = this.$store.state.todos.filter(todo => !todo.completed)
             },
 
             finishEdit(data) {
-                this.todos.splice(data.index, 1, data.todo)
+                const index = this.$store.state.todos.findIndex((item) => item.id === data.id);
+                this.$store.state.todos.splice(index, 1, data)
             },
             //(data.index, 1, data.todo) заменяем один item, и данные по todo (синхр данные между родителем и чайлдом)
         }
