@@ -1,7 +1,7 @@
 <template>
     <div>
-        <button :class="{ active: filter === 'all' }" @click="changeFilter('all')">вверх</button>
-        <button :class="{ active: filter === 'reverse' }" @click="changeFilter('reverse')">вниз</button>
+        <button :class="{ active: filter === 'all' }" @click="changeFilter('all')">ᐃ</button>
+        <button :class="{ active: filter === 'reverse' }" @click="changeFilter('reverse')">ᐁ</button>
     </div>
 </template>
 
