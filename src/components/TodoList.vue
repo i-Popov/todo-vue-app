@@ -13,31 +13,16 @@
                 <button :class="{ active: filter === 'reverse' }" @click="filter = 'reverse'">вниз</button>
             </div>
         </div>
-        <div v-for="(todo, index) in todosFiltered" :key="todo.id" class="todo-item">
-            <div class="todo-item-left">
-                <input type="checkbox" v-model="todo.completed">
-                <div v-if="!todo.editing"
-                     @dblclick="editTodo(todo)"
-                     class="todo-item-label"
-                     :class="{ completed : todo.completed}"
-                >
-                    {{ todo.title }}
-                </div>
-                <input
-                        v-else
-                        class="todo-item-edit"
-                        type="text"
-                        v-model="todo.title"
-                        @blur="completeEdit(todo)"
-                        @keyup.enter="completeEdit(todo)"
-                        @keyup.esc="cancelEdit(todo)"
-                        v-focus
-                >
-            </div>
-            <div class="remove-item" @click="deleteTodo(index)">
-                &times;
-            </div>
-        </div>
+        <todo-item
+                v-for="(todo, index) in todosFiltered"
+                :key="todo.id"
+                :todo="todo"
+                :index="index"
+                @deletedTodo="deleteTodo"
+                @finishEdit="finishEdit"
+                :checkAll="!anyRemaining"
+        >
+        </todo-item>
 
         <div class="extra-container">
             <div>
@@ -71,14 +56,24 @@
 </template>
 
 <script>
+    import TodoItem from "./TodoItem";
+
     export default {
         name: 'todo-list',
+
+        components: {
+            TodoItem,
+        },
+
         data () {
             return {
                 newTodo: '',
                 idForTodo: 4,
                 beforeEditCache: '',
                 filter: 'all', // ставим по дефолту фильтр
+                //currentPage: 0,
+                //pageSize: 10,
+                //visibleTodos: [],
                 todos: [
                     {
                         'id': 1,
@@ -101,8 +96,6 @@
                 ]
             }
         },
-
-
 
         computed: {
             remaining() {
@@ -132,19 +125,6 @@
 
         },
 
-
-
-
-        directives: {
-            focus: {
-                inserted: function(el) {
-                    el.focus()
-                }
-            }
-        },
-
-
-
         methods: {
             addTodo() {
 
@@ -166,23 +146,6 @@
                 this.todos.splice(index, 1)
             },
 
-            editTodo(todo) {
-                this.beforeEditCache = todo.title;
-                todo.editing = true
-            },
-
-            completeEdit(todo) {
-                if(todo.title.trim() === '' || todo.title.length < 4) {
-                    todo.title = this.beforeEditCache
-                }
-                todo.editing = false
-            },
-
-            cancelEdit(todo){
-                todo.title = this.beforeEditCache;
-                todo.editing = false
-            },
-
             checkAll() {
                 this.todos.forEach((todo) => todo.completed = event.target.checked)
             },
@@ -191,13 +154,10 @@
                 this.todos = this.todos.filter(todo => !todo.completed)
             },
 
-            shufflee: function () {
-                return Math.floor(Math.random() * this.items.length)
+            finishEdit(data) {
+                this.todos.splice(data.index, 1, data.todo)
             },
-
-            // shufflee() {
-            //     return this.todos._.shuffle(this.todos)
-            // }
+            //(data.index, 1, data.todo) заменяем один item, и данные по todo (синхр данные между родителем и чайлдом)
         }
     }
 </script>
