@@ -1,31 +1,14 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+import db from '../firebase';
 
 Vue.use(Vuex);
 
 export const store = new Vuex.Store({
     state: {
+        loading: true,
         filter: 'all',
-        todos: [
-            {
-                'id': 1,
-                'title': '1. Одна из задач по vue',
-                'completed': false,
-                'editing': false,
-            },
-            {
-                'id': 2,
-                'title': '2. Другая из задач по vue',
-                'completed': false,
-                'editing': false,
-            },
-            {
-                'id': 3,
-                'title': '3. Другая из задач по vue',
-                'completed': false,
-                'editing': false,
-            },
-        ]
+        todos: [],
     },
 
     getters: {
@@ -71,32 +54,81 @@ export const store = new Vuex.Store({
                 'editing': todo.editing,
             })
         },
+        retrieveTodos(state, todos) {
+            state.todos = todos
+        },
     },
     actions: {
+        retrieveTodos(context){
+            context.state.loading = true;
+            db.collection('todos').get()
+                .then(querySnapshot => {
+                    let tempTodos =[];
+                    querySnapshot.forEach(doc => {
+                        // eslint-disable-next-line no-console
+                        console.log(doc.data());
+                        const data = {
+                            id: doc.id, // берем id для локального использования
+                            title: doc.data().title,
+                            completed: doc.data().completed,
+                            timestamp: doc.data().timestamp,
+                        };
+                        tempTodos.push(data)
+                    });
+
+                    context.state.loading = false;
+                    const tempTodosSorted = tempTodos.sort((a, b) => {
+                        return a.timestamp.seconds - b.timestamp.seconds
+                    }); //добавили вывод правильной сортировки
+
+                    context.commit('retrieveTodos', tempTodosSorted)
+                });
+
+        },
         addTodo(context, todo) {
-            setTimeout(() => {
-                context.commit('addTodo', todo)
-            }, 200);
+            db.collection('todos').add({
+                title: todo.title, // не добавляем id потому что firebase авт дает
+                completed: false,
+                timestamp: new Date(),
+            })
+            .then(docRef => {
+                context.commit('addTodo', {
+                    id: docRef.id,
+                    title: todo.title,
+                    completed: false,
+                })
+            })
         },
         clearCompleted(context) {
-            setTimeout(() => {
-                context.commit('clearCompleted')
-            }, 200);
+            db.collection('todos').where('completed', '==', true).get()
+                .then(querySnapshot => {
+                    querySnapshot.forEach(doc => {
+                        doc.ref.delete()
+                            .then(() => {
+                                context.commit('clearCompleted')
+                            })
+                    })
+                })
         },
         updateFilter(context, filter) {
-            setTimeout(() => {
-                context.commit('updateFilter', filter)
-            }, 200);
+            context.commit('updateFilter', filter)
         },
         delTodo(context, id) {
-            setTimeout(() => {
-                context.commit('delTodo', id)
-            }, 200);
+            db.collection('todos').doc(id).delete()
+                .then(() => {
+                    context.commit('delTodo', id)
+                })
         },
         updateTodo(context, todo) {
-            setTimeout(() => {
-                context.commit('updateTodo', todo)
-            }, 200);
+            db.collection('todos').doc(todo.id).set({ // .set параметр сохранения
+                id: todo.id,
+                title: todo.title,
+                completed: todo.completed,
+                timestamp: new Date(),
+            })
+                .then(() => {
+                    context.commit('updateTodo', todo)
+                })
         },
     }
 });
